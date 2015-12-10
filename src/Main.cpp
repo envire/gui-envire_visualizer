@@ -1,7 +1,13 @@
+#include "EnvireVizPlugin.h"
+#include <osgViz/OsgViz.hpp>
 
-
-
+using namespace envire::Visualizer;
 int main()
 {
-	return 0;
+  osgviz::OsgViz *osgViz = osgviz::OsgViz::getInstance();
+  
+  EnvireVizPlugin* plugin = osgViz->getVisualizerPlugin<EnvireVizPlugin>("EnvireUrdfVisualizer");
+  
+  
+  
 }
