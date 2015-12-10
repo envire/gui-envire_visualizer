@@ -5,17 +5,19 @@
 #include <osgViz/plugins/OsgVizVisualizerPlugin.h>
 #include <envire_core/items/ItemBase.hpp>
 
-namespace envire { namespace Visualizer {
+namespace envire { namespace visualizer {
 
 /**The base class for all osgViz plugins that are able to visualize envire::Items */
 class EnvireVizPlugin : public osgviz::OsgVizVisualizerPlugin
 {
 public:
   
+  EnvireVizPlugin(lib_manager::LibManager* pManager) :
+    osgviz::OsgVizVisualizerPlugin(pManager) {}
   
   struct TypeNotSupportedException : public std::exception
   {
-    explicit TypeNotSupportedException(const const std::string& type_name) :
+    explicit TypeNotSupportedException(const std::string& type_name) :
       msg("Plugin does not support type: " + type_name) {}
     virtual char const * what() const throw() { return msg.c_str(); }
     const std::string msg;
@@ -27,8 +29,8 @@ public:
    * @throw TypeNotSupportedException if @p type is not supported. 
    * @return A memory managed pointer to the created visualization.
    */
-  virtual osg::ref_ptr<Object> createItemVisualization(const std::type_index& type,
-                                                       const envire::core::ItemBase::Ptr item) = 0;
+  virtual osg::ref_ptr<osgviz::Object> createItemVisualization(const std::type_index& type,
+                                                               const envire::core::ItemBase::Ptr item) = 0;
                                                        
   /** @return a vector of all types that are supported by this Visualizer.
    *          I.e. The visualizer is able to create a visual for each of those types*/                                                       
