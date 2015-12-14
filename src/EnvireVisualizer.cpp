@@ -5,7 +5,12 @@
 #include <envire_core/events/ItemAddedEvent.hpp>
 #include <envire_core/events/ItemRemovedEvent.hpp>
 #include <envire_core/events/TransformModifiedEvent.hpp>
+#include <envire_core/items/Item.hpp>
 #include <iostream>
+#define BASE_LOG_DEBUG
+#include <base/Logging.hpp>
+#include <osgViz/tools/TypeNameDemangling.h>
+
 
 using namespace osgviz;
 using namespace envire::core;
@@ -28,6 +33,8 @@ void EnvireVisualizer::loadPlugin(const std::string& name)
   if(nullptr != pPlugin)
   {
     addPlugin(pPlugin);
+    //FIXME only for testing
+    loadTree();
   }
   else
   {
@@ -44,6 +51,8 @@ void EnvireVisualizer::start()
 void EnvireVisualizer::addPlugin(EnvireVizPlugin* pPlugin)
 {
   assert(nullptr != pPlugin);
+  LOG_INFO_S << " Adding plugin " << pPlugin->getLibName() << " for types:";
+
   for(const std::type_index& type : pPlugin->getSupportedTypes())
   {
     if(plugins.find(type) != plugins.end())
@@ -51,6 +60,7 @@ void EnvireVisualizer::addPlugin(EnvireVizPlugin* pPlugin)
       throw PluginAlreadyExistsForType(pPlugin->getLibName(), plugins[type]->getLibName(), type.name());
     }
     plugins[type] = pPlugin;
+    LOG_INFO_S << " " << demangledTypeName(type) << " Hash: " << pPlugin->getSupportedTypes().back().hash_code();
   }
 }
 

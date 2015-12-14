@@ -1,4 +1,3 @@
-  
 rock_library(envire_visualizer
     SOURCES
     EnvireVisualizer.cpp
@@ -8,7 +7,8 @@ rock_library(envire_visualizer
     DEPS_PKGCONFIG osgVizPlugin
     DEPS_PKGCONFIG envire_core
     DEPS_PKGCONFIG osgViz
-    DEPS_PKGCONFIG base-types)
+    DEPS_PKGCONFIG base-types
+    DEPS_PKGCONFIG base-lib)
     
 rock_executable(envire_visualizer_bin
     SOURCES 

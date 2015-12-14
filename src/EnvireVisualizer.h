@@ -6,7 +6,7 @@
 #include <envire_core/graph/TransformGraphTypes.hpp>
 #include <envire_core/graph/TreeView.hpp>
 #include <osgViz/OsgViz.hpp>
-
+#include <envire_core/items/Item.hpp>
 
 namespace envire { namespace core 
 {

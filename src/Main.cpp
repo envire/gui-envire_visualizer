@@ -14,7 +14,6 @@ int main()
   g->addFrame("root");
   StrItem::Ptr item(new StrItem("teeest"));
   g->addItemToFrame("root", item);
-  
   EnvireVisualizer visualizer(g, "root");
   visualizer.loadPlugin("envire_visualizer_urdf_plugin");
   visualizer.start();
@@ -23,4 +22,4 @@ int main()
   {
     sleep(1);
   }
-}
+} 
