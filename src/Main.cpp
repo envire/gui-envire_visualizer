@@ -18,6 +18,9 @@ int main()
   visualizer.loadPlugin("envire_visualizer_urdf_plugin");
   visualizer.start();
   
+  visualizer.printTotGraph("/home/arne/test/test.dot");
+  
+  
   while(true)
   {
     sleep(1);

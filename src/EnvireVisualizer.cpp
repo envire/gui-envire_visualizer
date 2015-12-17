@@ -10,6 +10,7 @@
 #define BASE_LOG_DEBUG
 #include <base/Logging.hpp>
 #include <osgViz/tools/TypeNameDemangling.h>
+#include <osgViz/tools/GraphPrinter.h>
 
 
 using namespace osgviz;
@@ -20,11 +21,13 @@ namespace envire { namespace visualizer
   
 EnvireVisualizer::EnvireVisualizer(std::shared_ptr< core::TransformGraph > graph,
                                    const FrameId rootFrame) :
-  graph(graph), osgViz(OsgViz::getInstance()), rootFrame(rootFrame)
+  graph(graph), osgViz(OsgViz::getInstance()), rootFrame(rootFrame), root(new osgviz::Object()),
+  transformations(10, EdgeHash<core::TransformGraph>(graph))
 {
   assert(nullptr != graph.get());
+  root->setName("envire fake root");
+  osgViz->addChild(root);
   graph->getTree(rootFrame, true, &tree);//the view will be keept up to date automatically
-  loadTree();
 }
 
 void EnvireVisualizer::loadPlugin(const std::string& name)
@@ -33,8 +36,7 @@ void EnvireVisualizer::loadPlugin(const std::string& name)
   if(nullptr != pPlugin)
   {
     addPlugin(pPlugin);
-    //FIXME only for testing
-    loadTree();
+    loadTree(pPlugin->getSupportedTypes());
   }
   else
   {
@@ -64,49 +66,58 @@ void EnvireVisualizer::addPlugin(EnvireVizPlugin* pPlugin)
   }
 }
 
-void EnvireVisualizer::loadTree()
+void EnvireVisualizer::loadTree(const std::vector<std::type_index>& types)
 {
-  osg::ref_ptr<osgviz::Object> root(new osgviz::Object());
-  root->setName("root");
   vertex_descriptor rootVertex = graph->getVertex(rootFrame);
-  addItems(rootVertex, root); //special case for items in the root vertex
-  loadChildren(rootVertex, root);
-  osgViz->addChild(root);
+  addItems(rootVertex, root, types); //special case for items in the root vertex
+  loadChildren(rootVertex, root, types);
 }
 
 
 void EnvireVisualizer::loadChildren(const vertex_descriptor parentFrame,
-                                    osg::ref_ptr<osgviz::Object> parent)
+                                    osg::ref_ptr<osgviz::Object> parent,
+                                    const std::vector<std::type_index>& types)
 {
   const VertexRelation& relation = tree.tree[parentFrame];
   for(const vertex_descriptor child : relation.children)
   {
+    osg::ref_ptr<osgviz::Object> transformNode(nullptr);
     const edge_descriptor edge = graph->getEdge(parentFrame, child);
-    const Transform tf = graph->getTransform(edge);
-    const base::Vector3d& translation = tf.transform.translation;
-    const base::Orientation& orientation = tf.transform.orientation;
+    if(transformations.find(edge) == transformations.end())
+    {
+      //FIXME speration of concerns? should this method create the nodes?
+      //this is a new transformation, need to add it.
+      const Transform tf = graph->getTransform(edge);
+      const base::Vector3d& translation = tf.transform.translation;
+      const base::Orientation& orientation = tf.transform.orientation;
+      transformNode = new osgviz::Object();
+      transformNode->setPosition(osg::Vec3d(translation.x(), translation.y(), translation.z()));
+      transformNode->setAttitude(osg::Quat(orientation.x(), orientation.y(), orientation.z(),
+                                           orientation.w()));
+      transformNode->setName(graph->getFrameId(parentFrame) + " --> " + graph->getFrameId(child));
+      parent->addChild(transformNode);
+      transformations[edge] = transformNode;
+    }
+    else
+    {
+      transformNode = transformations[edge];
+    }
     
-    osg::ref_ptr<osgviz::Object> transformNode(new osgviz::Object());
-    transformNode->setPosition(osg::Vec3d(translation.x(), translation.y(), translation.z()));
-    transformNode->setAttitude(osg::Quat(orientation.x(), orientation.y(), orientation.z(),
-                                     orientation.w()));
-    transformNode->setName(graph->getFrameId(parentFrame) + " --> " + graph->getFrameId(child));
-    parent->addChild(transformNode);
-    addItems(child, transformNode);
-    loadChildren(child, transformNode);
+    addItems(child, transformNode, types);
+    loadChildren(child, transformNode, types);
   }
 }
 
-void EnvireVisualizer::addItems(const vertex_descriptor frame, osg::ref_ptr<osgviz::Object> node)
+void EnvireVisualizer::addItems(const vertex_descriptor frame, osg::ref_ptr<osgviz::Object> node,
+                                const std::vector<std::type_index>& types)
 {
-  for(auto pluginPair : plugins)
+  for(const std::type_index& type : types)
   {
-    const std::type_index& type = pluginPair.first;
     if(graph->containsItems(frame, type))
     {
-      using Items = Frame::ItemList;
-      const Items& items = graph->getItems(frame, type);
-      EnvireVizPlugin* plugin = pluginPair.second;
+      const Frame::ItemList& items = graph->getItems(frame, type);
+      assert(plugins.find(type) != plugins.end()); //a plugin for this type has to exist, otherwise the type should not be in the list 
+      EnvireVizPlugin* plugin = plugins[type];
       for(const ItemBase::Ptr item : items)
       {
           osg::ref_ptr<osgviz::Object> visual = plugin->createItemVisualization(type, item);
@@ -127,11 +138,23 @@ void EnvireVisualizer::itemRemoved(const core::ItemRemovedEvent& e)
 
 }
 
+
 void EnvireVisualizer::transformModified(const core::TransformModifiedEvent& e)
 {
 
 }
 
+void EnvireVisualizer::printTotGraph(const std::string& filename)
+{
+  if(filename.empty())
+  {
+    GraphPrinter::print(root.get(), true, nullptr);
+  }
+  else
+  {
+    GraphPrinter::print(root.get(), true, filename.c_str());
+  }
+}
 
 
 }}
